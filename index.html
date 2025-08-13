@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS S3 Storage Classes Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AWS S3 Storage Classes Visualizer</h1>
+            <p>Interactive demonstration of S3 storage tiers, lifecycle policies, and cost optimization</p>
+        </header>
+
+        <div class="controls">
+            <div class="file-upload">
+                <input type="text" id="file-name" placeholder="Enter file name" value="document.pdf">
+                <select id="file-size">
+                    <option value="1">1 MB</option>
+                    <option value="10" selected>10 MB</option>
+                    <option value="100">100 MB</option>
+                    <option value="1000">1 GB</option>
+                    <option value="10000">10 GB</option>
+                </select>
+                <button onclick="uploadFile()" class="btn-upload">Upload File</button>
+            </div>
+            <div class="lifecycle-controls">
+                <button onclick="simulateLifecycle()" class="btn-lifecycle">Simulate Lifecycle (30 days)</button>
+                <button onclick="retrieveFile()" class="btn-retrieve">Retrieve File</button>
+                <button onclick="deleteFile()" class="btn-delete">Delete File</button>
+                <button onclick="resetSimulation()" class="btn-reset">Reset</button>
+            </div>
+        </div>
+
+        <div class="cost-calculator">
+            <h3>Monthly Cost Calculator</h3>
+            <div class="cost-inputs">
+                <label>
+                    Data Size (GB):
+                    <input type="number" id="calc-size" value="100" min="1">
+                </label>
+                <label>
+                    Storage Duration (months):
+                    <input type="number" id="calc-duration" value="12" min="1">
+                </label>
+                <button onclick="calculateCosts()" class="btn-calculate">Calculate Costs</button>
+            </div>
+            <div class="cost-results" id="cost-results">
+                <!-- Cost comparison will appear here -->
+            </div>
+        </div>
+
+        <div class="storage-timeline">
+            <h3>Storage Class Timeline</h3>
+            <div class="timeline" id="timeline">
+                <div class="timeline-marker" data-day="0">
+                    <div class="marker-dot active"></div>
+                    <div class="marker-label">Day 0<br>Upload</div>
+                </div>
+                <div class="timeline-marker" data-day="30">
+                    <div class="marker-dot"></div>
+                    <div class="marker-label">Day 30<br>IA Transition</div>
+                </div>
+                <div class="timeline-marker" data-day="90">
+                    <div class="marker-dot"></div>
+                    <div class="marker-label">Day 90<br>Glacier</div>
+                </div>
+                <div class="timeline-marker" data-day="365">
+                    <div class="marker-dot"></div>
+                    <div class="marker-label">Day 365<br>Deep Archive</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-classes">
+            <div class="storage-class active" data-class="standard">
+                <div class="class-header">
+                    <h3>S3 Standard</h3>
+                    <div class="class-icon">🚀</div>
+                </div>
+                <div class="class-details">
+                    <div class="detail-item">
+                        <span class="label">Retrieval Time:</span>
+                        <span class="value instant">Instant</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Storage Cost:</span>
+                        <span class="value">$0.023/GB/month</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Retrieval Cost:</span>
+                        <span class="value">Free</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Durability:</span>
+                        <span class="value">99.999999999%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Availability:</span>
+                        <span class="value">99.99%</span>
+                    </div>
+                </div>
+                <div class="use-cases">
+                    <strong>Use Cases:</strong> Frequently accessed data, websites, content distribution
+                </div>
+                <div class="file-count">Files: <span id="standard-count">0</span></div>
+            </div>
+
+            <div class="storage-class" data-class="ia">
+                <div class="class-header">
+                    <h3>S3 Standard-IA</h3>
+                    <div class="class-icon">⏱️</div>
+                </div>
+                <div class="class-details">
+                    <div class="detail-item">
+                        <span class="label">Retrieval Time:</span>
+                        <span class="value instant">Instant</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Storage Cost:</span>
+                        <span class="value">$0.0125/GB/month</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Retrieval Cost:</span>
+                        <span class="value">$0.01/GB</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Durability:</span>
+                        <span class="value">99.999999999%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Availability:</span>
+                        <span class="value">99.9%</span>
+                    </div>
+                </div>
+                <div class="use-cases">
+                    <strong>Use Cases:</strong> Infrequently accessed data, backups, disaster recovery
+                </div>
+                <div class="file-count">Files: <span id="ia-count">0</span></div>
+            </div>
+
+            <div class="storage-class" data-class="glacier">
+                <div class="class-header">
+                    <h3>S3 Glacier Flexible</h3>
+                    <div class="class-icon">🧊</div>
+                </div>
+                <div class="class-details">
+                    <div class="detail-item">
+                        <span class="label">Retrieval Time:</span>
+                        <span class="value slow">1-5 minutes</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Storage Cost:</span>
+                        <span class="value">$0.004/GB/month</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Retrieval Cost:</span>
+                        <span class="value">$0.03/GB</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Durability:</span>
+                        <span class="value">99.999999999%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Availability:</span>
+                        <span class="value">99.99%</span>
+                    </div>
+                </div>
+                <div class="use-cases">
+                    <strong>Use Cases:</strong> Long-term archival, compliance, rarely accessed data
+                </div>
+                <div class="file-count">Files: <span id="glacier-count">0</span></div>
+            </div>
+
+            <div class="storage-class" data-class="deep-archive">
+                <div class="class-header">
+                    <h3>S3 Glacier Deep Archive</h3>
+                    <div class="class-icon">🏔️</div>
+                </div>
+                <div class="class-details">
+                    <div class="detail-item">
+                        <span class="label">Retrieval Time:</span>
+                        <span class="value very-slow">12 hours</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Storage Cost:</span>
+                        <span class="value">$0.00099/GB/month</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Retrieval Cost:</span>
+                        <span class="value">$0.02/GB</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Durability:</span>
+                        <span class="value">99.999999999%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Availability:</span>
+                        <span class="value">99.99%</span>
+                    </div>
+                </div>
+                <div class="use-cases">
+                    <strong>Use Cases:</strong> Long-term retention, regulatory compliance, digital preservation
+                </div>
+                <div class="file-count">Files: <span id="deep-archive-count">0</span></div>
+            </div>
+        </div>
+
+        <div class="files-section">
+            <h3>Your Files</h3>
+            <div class="files-container" id="files-container">
+                <div class="no-files">No files uploaded yet. Upload a file to get started!</div>
+            </div>
+        </div>
+
+        <div class="lifecycle-policy">
+            <h3>Lifecycle Policy Configuration</h3>
+            <div class="policy-editor">
+                <div class="policy-rule">
+                    <label>
+                        <input type="checkbox" id="enable-ia" checked>
+                        Transition to Standard-IA after
+                        <input type="number" id="ia-days" value="30" min="1" max="365"> days
+                    </label>
+                </div>
+                <div class="policy-rule">
+                    <label>
+                        <input type="checkbox" id="enable-glacier" checked>
+                        Transition to Glacier after
+                        <input type="number" id="glacier-days" value="90" min="1" max="365"> days
+                    </label>
+                </div>
+                <div class="policy-rule">
+                    <label>
+                        <input type="checkbox" id="enable-deep-archive" checked>
+                        Transition to Deep Archive after
+                        <input type="number" id="deep-archive-days" value="365" min="1" max="3650"> days
+                    </label>
+                </div>
+                <div class="policy-rule">
+                    <label>
+                        <input type="checkbox" id="enable-deletion">
+                        Delete objects after
+                        <input type="number" id="deletion-days" value="2555" min="1" max="10000"> days (7 years)
+                    </label>
+                </div>
+                <button onclick="applyLifecyclePolicy()" class="btn-apply">Apply Policy</button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <h3>Storage Class Comparison</h3>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Storage Class</th>
+                                <th>Storage Cost</th>
+                                <th>Retrieval Time</th>
+                                <th>Retrieval Cost</th>
+                                <th>Best For</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Standard</td>
+                                <td>$0.023/GB</td>
+                                <td>Instant</td>
+                                <td>Free</td>
+                                <td>Frequent access</td>
+                            </tr>
+                            <tr>
+                                <td>Standard-IA</td>
+                                <td>$0.0125/GB</td>
+                                <td>Instant</td>
+                                <td>$0.01/GB</td>
+                                <td>Infrequent access</td>
+                            </tr>
+                            <tr>
+                                <td>Glacier Flexible</td>
+                                <td>$0.004/GB</td>
+                                <td>1-5 minutes</td>
+                                <td>$0.03/GB</td>
+                                <td>Archival</td>
+                            </tr>
+                            <tr>
+                                <td>Deep Archive</td>
+                                <td>$0.00099/GB</td>
+                                <td>12 hours</td>
+                                <td>$0.02/GB</td>
+                                <td>Long-term retention</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="code-examples">
+            <h3>AWS CLI Examples</h3>
+            <div class="code-tabs">
+                <button class="code-tab active" data-tab="upload">Upload</button>
+                <button class="code-tab" data-tab="lifecycle">Lifecycle</button>
+                <button class="code-tab" data-tab="retrieve">Retrieve</button>
+            </div>
+            <div class="code-content">
+                <pre id="upload-code"><code># Upload file to S3 Standard
+aws s3 cp document.pdf s3://my-bucket/
+
+# Upload directly to Standard-IA
+aws s3 cp document.pdf s3://my-bucket/ --storage-class STANDARD_IA
+
+# Upload to Glacier
+aws s3 cp document.pdf s3://my-bucket/ --storage-class GLACIER
+
+# Upload to Deep Archive
+aws s3 cp document.pdf s3://my-bucket/ --storage-class DEEP_ARCHIVE</code></pre>
+
+                <pre id="lifecycle-code" style="display: none;"><code># Create lifecycle policy JSON
+{
+  "Rules": [
+    {
+      "ID": "LifecycleRule",
+      "Status": "Enabled",
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER"
+        },
+        {
+          "Days": 365,
+          "StorageClass": "DEEP_ARCHIVE"
+        }
+      ]
+    }
+  ]
+}
+
+# Apply lifecycle policy
+aws s3api put-bucket-lifecycle-configuration \
+  --bucket my-bucket \
+  --lifecycle-configuration file://lifecycle.json</code></pre>
+
+                <pre id="retrieve-code" style="display: none;"><code># Restore from Glacier (expedited: 1-5 min)
+aws s3api restore-object \
+  --bucket my-bucket \
+  --key document.pdf \
+  --restore-request Days=1,GlacierJobParameters='{Tier=Expedited}'
+
+# Restore from Glacier (standard: 3-5 hours)
+aws s3api restore-object \
+  --bucket my-bucket \
+  --key document.pdf \
+  --restore-request Days=1,GlacierJobParameters='{Tier=Standard}'
+
+# Restore from Deep Archive (standard: 12 hours)
+aws s3api restore-object \
+  --bucket my-bucket \
+  --key document.pdf \
+  --restore-request Days=1,GlacierJobParameters='{Tier=Standard}'</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
